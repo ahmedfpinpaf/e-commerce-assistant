@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ShopAI Assistant - Product Catalog</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .line-clamp-2 {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col">
+
+  <!-- TOP HEADER -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3 w-full sm:w-auto justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-100">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-lg font-bold tracking-tight text-slate-900">ShopAI Assistant</h1>
+            <p class="text-xs text-slate-500 font-medium">Unified Product Catalog & Semantic Search</p>
+          </div>
+        </div>
+        <span id="statsBadge" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 sm:hidden">
+          Loading...
+        </span>
+      </div>
+
+      <!-- SEARCH BAR -->
+      <div class="w-full sm:max-w-md relative">
+        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+        </div>
+        <input 
+          type="text" 
+          id="searchInput" 
+          placeholder="Search products, brands, descriptions..."
+          class="w-full pl-10 pr-10 py-2 text-sm bg-slate-100 border border-transparent rounded-xl focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition"
+        />
+        <button id="clearSearchBtn" class="hidden absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- STATS BADGE (DESKTOP) -->
+      <div class="hidden sm:flex items-center gap-2">
+        <span id="desktopStatsBadge" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 border border-slate-200">
+          214 Products Available
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-1 flex flex-col md:flex-row gap-6">
+
+    <!-- FILTERS SIDEBAR -->
+    <aside class="w-full md:w-64 shrink-0 space-y-6">
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-5">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+          <h2 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+            <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            Filters
+          </h2>
+          <button id="resetFiltersBtn" class="text-xs font-medium text-indigo-600 hover:text-indigo-800 transition">Reset All</button>
+        </div>
+
+        <!-- SOURCE FILTER -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Catalog Source</label>
+          <div class="grid grid-cols-3 gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-medium text-slate-600" id="sourceFilter">
+            <button data-source="all" class="source-btn py-1.5 rounded-lg text-center bg-white text-indigo-700 shadow-sm transition">All</button>
+            <button data-source="dummyjson" class="source-btn py-1.5 rounded-lg text-center hover:text-slate-900 transition">Dummy</button>
+            <button data-source="fakestore" class="source-btn py-1.5 rounded-lg text-center hover:text-slate-900 transition">FakeStore</button>
+          </div>
+        </div>
+
+        <!-- CATEGORY FILTER -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Category</label>
+          <select id="categorySelect" class="w-full text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+            <option value="all">All Categories</option>
+          </select>
+        </div>
+
+        <!-- PRICE RANGE FILTER -->
+        <div>
+          <div class="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+            <span>Max Price</span>
+            <span id="priceDisplay" class="text-slate-900 font-bold normal-case text-sm">$2,500</span>
+          </div>
+          <input 
+            type="range" 
+            id="priceRange" 
+            min="5" 
+            max="2500" 
+            step="10" 
+            value="2500" 
+            class="w-full accent-indigo-600 cursor-pointer"
+          />
+          <div class="flex justify-between text-[11px] text-slate-400 mt-1">
+            <span>$5</span>
+            <span>$1,000</span>
+            <span>$2,500+</span>
+          </div>
+        </div>
+
+        <!-- RATING FILTER -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Minimum Rating</label>
+          <select id="ratingSelect" class="w-full text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+            <option value="0">Any Rating</option>
+            <option value="4.5">4.5★ & Above</option>
+            <option value="4.0">4.0★ & Above</option>
+            <option value="3.5">3.5★ & Above</option>
+            <option value="3.0">3.0★ & Above</option>
+          </select>
+        </div>
+
+        <!-- SORT BY -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Sort By</label>
+          <select id="sortBySelect" class="w-full text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+            <option value="default">Default Catalog Order</option>
+            <option value="price-asc">Price: Low to High</option>
+            <option value="price-desc">Price: High to Low</option>
+            <option value="rating-desc">Highest Rated</option>
+            <option value="title-asc">Title: A to Z</option>
+          </select>
+        </div>
+      </div>
+    </aside>
+
+    <!-- PRODUCT CATALOG CONTENT -->
+    <section class="flex-1 flex flex-col min-w-0">
+      
+      <!-- CONTROLS BAR -->
+      <div class="flex items-center justify-between mb-4">
+        <div class="text-xs font-medium text-slate-500">
+          Showing <span id="visibleCount" class="font-bold text-slate-900">0</span> products
+        </div>
+      </div>
+
+      <!-- PRODUCT GRID -->
+      <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-5">
+        <!-- Dynamic Cards Inserted Here -->
+      </div>
+
+      <!-- EMPTY STATE -->
+      <div id="emptyState" class="hidden flex flex-col items-center justify-center py-16 text-center">
+        <div class="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mb-3">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h3 class="text-sm font-bold text-slate-800">No matching products found</h3>
+        <p class="text-xs text-slate-500 mt-1 max-w-sm">Try broadening your search query or adjusting your category and price filters.</p>
+        <button id="emptyResetBtn" class="mt-4 px-4 py-2 text-xs font-semibold bg-indigo-50 text-indigo-700 rounded-xl hover:bg-indigo-100 transition">
+          Reset Filters
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <!-- PRODUCT DETAIL MODAL -->
+  <div id="productModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-opacity">
+    <div class="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-100 flex flex-col">
+      <!-- Modal Header -->
+      <div class="sticky top-0 bg-white px-6 py-4 border-b border-slate-100 flex items-center justify-between z-10">
+        <div class="flex items-center gap-2">
+          <span id="modalSourceBadge" class="text-[11px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider"></span>
+          <span id="modalCategoryBadge" class="text-[11px] font-medium px-2 py-0.5 rounded-md bg-slate-100 text-slate-700"></span>
+        </div>
+        <button id="closeModalBtn" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Image -->
+          <div class="bg-slate-50 rounded-xl p-4 flex items-center justify-center border border-slate-100 min-h-[260px]">
+            <img id="modalImage" src="" alt="Product Image" class="max-h-64 object-contain transition transform hover:scale-105 duration-300">
+          </div>
+
+          <!-- Quick Info -->
+          <div class="flex flex-col justify-between space-y-4">
+            <div>
+              <p id="modalBrand" class="text-xs font-semibold text-indigo-600 tracking-wide uppercase"></p>
+              <h2 id="modalTitle" class="text-lg font-bold text-slate-900 mt-1 leading-snug"></h2>
+              
+              <div class="flex items-center gap-2 mt-2">
+                <div id="modalRatingStars" class="flex items-center text-amber-400 text-xs"></div>
+                <span id="modalRatingText" class="text-xs font-semibold text-slate-700"></span>
+              </div>
+            </div>
+
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-2">
+              <div class="flex items-baseline gap-2">
+                <span id="modalPrice" class="text-2xl font-bold text-slate-900"></span>
+                <span id="modalOriginalPrice" class="text-xs text-slate-400 line-through"></span>
+                <span id="modalDiscountBadge" class="text-xs font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full hidden"></span>
+              </div>
+              <div class="flex items-center gap-2 text-xs font-medium">
+                <span id="modalStockStatus" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold"></span>
+                <span id="modalSku" class="text-slate-400"></span>
+              </div>
+            </div>
+
+            <div id="modalTags" class="flex flex-wrap gap-1.5"></div>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div>
+          <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider mb-1.5">Description</h4>
+          <p id="modalDescription" class="text-xs text-slate-600 leading-relaxed"></p>
+        </div>
+
+        <!-- Specifications & Logistics Table -->
+        <div id="modalSpecsContainer" class="border border-slate-100 rounded-xl p-4 bg-slate-50/50">
+          <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2.5">Specifications & Policies</h4>
+          <div id="modalSpecsGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+            <!-- Dynamic Specs inserted here -->
+          </div>
+        </div>
+
+        <!-- Customer Reviews -->
+        <div id="modalReviewsContainer">
+          <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2.5">Customer Reviews</h4>
+          <div id="modalReviewsList" class="space-y-2.5">
+            <!-- Dynamic reviews inserted here -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="bg-white border-t border-slate-200 mt-auto py-4 text-center text-xs text-slate-400">
+    ShopAI Assistant &bull; 214 Products indexed from DummyJSON & Fake Store API &bull; Ready for Semantic RAG Search
+  </footer>
+
+  <!-- LOAD PRODUCTS DATA (works standalone or via server) -->
+  <script src="products_data.js"></script>
+  <script src="chatbot.js"></script>
+
+  <script>
+    // App State
+    let products = [];
+    let activeSource = 'all';
+    let activeCategory = 'all';
+    let maxPrice = 2500;
+    let minRating = 0;
+    let sortBy = 'default';
+    let searchQuery = '';
+
+    // Initialize
+    async function init() {
+      // 1. Try loading from window.PRODUCTS_DATA first (for file:/// offline access)
+      if (window.PRODUCTS_DATA && Array.isArray(window.PRODUCTS_DATA)) {
+        products = window.PRODUCTS_DATA;
+      } else {
+        // 2. Fallback to API if served via FastAPI
+        try {
+          const res = await fetch('/api/products');
+          if (res.ok) {
+            products = await res.json();
+          }
+        } catch (e) {
+          console.warn('Could not fetch from /api/products, checking catalog_raw.json');
+          try {
+            const resRaw = await fetch('catalog_raw.json');
+            if (resRaw.ok) products = await resRaw.json();
+          } catch (err) {
+            console.error('Failed to load products:', err);
+          }
+        }
+      }
+
+      setupCategories();
+      setupEventListeners();
+      renderProducts();
+      updateStats();
+    }
+
+    function updateStats() {
+      const total = products.length;
+      const dummyCount = products.filter(p => p.source === 'dummyjson').length;
+      const fakeCount = products.filter(p => p.source === 'fakestore').length;
+      const text = `${total} Products (${dummyCount} DummyJSON + ${fakeCount} FakeStore)`;
+      
+      const badge = document.getElementById('statsBadge');
+      const dBadge = document.getElementById('desktopStatsBadge');
+      if (badge) badge.innerText = `${total} items`;
+      if (dBadge) dBadge.innerText = text;
+    }
+
+    function setupCategories() {
+      const select = document.getElementById('categorySelect');
+      const cats = Array.from(new Set(products.map(p => p.category).filter(Boolean))).sort();
+      cats.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.innerText = c.charAt(0).toUpperCase() + c.slice(1);
+        select.appendChild(opt);
+      });
+    }
+
+    function setupEventListeners() {
+      // Search
+      const searchInput = document.getElementById('searchInput');
+      const clearSearchBtn = document.getElementById('clearSearchBtn');
+      searchInput.addEventListener('input', (e) => {
+        searchQuery = e.target.value.trim().toLowerCase();
+        clearSearchBtn.classList.toggle('hidden', !searchQuery);
+        renderProducts();
+      });
+      clearSearchBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        searchQuery = '';
+        clearSearchBtn.classList.add('hidden');
+        renderProducts();
+      });
+
+      // Source Filter Buttons
+      document.querySelectorAll('.source-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          document.querySelectorAll('.source-btn').forEach(b => {
+            b.classList.remove('bg-white', 'text-indigo-700', 'shadow-sm');
+            b.classList.add('text-slate-600');
+          });
+          btn.classList.add('bg-white', 'text-indigo-700', 'shadow-sm');
+          btn.classList.remove('text-slate-600');
+          activeSource = btn.dataset.source;
+          renderProducts();
+        });
+      });
+
+      // Category
+      document.getElementById('categorySelect').addEventListener('change', (e) => {
+        activeCategory = e.target.value;
+        renderProducts();
+      });
+
+      // Price Slider
+      const priceSlider = document.getElementById('priceRange');
+      const priceDisplay = document.getElementById('priceDisplay');
+      priceSlider.addEventListener('input', (e) => {
+        maxPrice = parseFloat(e.target.value);
+        priceDisplay.innerText = `$${maxPrice.toLocaleString()}`;
+        renderProducts();
+      });
+
+      // Rating
+      document.getElementById('ratingSelect').addEventListener('change', (e) => {
+        minRating = parseFloat(e.target.value);
+        renderProducts();
+      });
+
+      // Sort
+      document.getElementById('sortBySelect').addEventListener('change', (e) => {
+        sortBy = e.target.value;
+        renderProducts();
+      });
+
+      // Reset buttons
+      const reset = () => {
+        activeSource = 'all';
+        activeCategory = 'all';
+        maxPrice = 2500;
+        minRating = 0;
+        sortBy = 'default';
+        searchQuery = '';
+        searchInput.value = '';
+        clearSearchBtn.classList.add('hidden');
+        priceSlider.value = 2500;
+        priceDisplay.innerText = '$2,500';
+        document.getElementById('categorySelect').value = 'all';
+        document.getElementById('ratingSelect').value = '0';
+        document.getElementById('sortBySelect').value = 'default';
+        document.querySelectorAll('.source-btn').forEach(b => {
+          if (b.dataset.source === 'all') {
+            b.classList.add('bg-white', 'text-indigo-700', 'shadow-sm');
+          } else {
+            b.classList.remove('bg-white', 'text-indigo-700', 'shadow-sm');
+          }
+        });
+        renderProducts();
+      };
+      document.getElementById('resetFiltersBtn').addEventListener('click', reset);
+      document.getElementById('emptyResetBtn').addEventListener('click', reset);
+
+      // Modal close
+      document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+      document.getElementById('productModal').addEventListener('click', (e) => {
+        if (e.target.id === 'productModal') closeModal();
+      });
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeModal();
+      });
+    }
+
+    function getProductRating(p) {
+      if (typeof p.rating === 'number') return p.rating;
+      if (p.rating && typeof p.rating.rate === 'number') return p.rating.rate;
+      return 0;
+    }
+
+    function getRatingCount(p) {
+      if (p.rating && typeof p.rating.count === 'number') return p.rating.count;
+      if (Array.isArray(p.reviews)) return p.reviews.length;
+      return null;
+    }
+
+    function filterAndSortProducts() {
+      return products.filter(p => {
+        // Source Filter
+        const src = p.source || (p.sku ? 'dummyjson' : 'fakestore');
+        if (activeSource !== 'all' && src !== activeSource) return false;
+
+        // Category Filter
+        if (activeCategory !== 'all' && p.category !== activeCategory) return false;
+
+        // Price Filter
+        const price = typeof p.price === 'number' ? p.price : 0;
+        if (price > maxPrice) return false;
+
+        // Rating Filter
+        const rating = getProductRating(p);
+        if (rating < minRating) return false;
+
+        // Search Query (title, brand, category, description, tags)
+        if (searchQuery) {
+          const t = (p.title || '').toLowerCase();
+          const d = (p.description || '').toLowerCase();
+          const b = (p.brand || '').toLowerCase();
+          const c = (p.category || '').toLowerCase();
+          const tags = Array.isArray(p.tags) ? p.tags.join(' ').toLowerCase() : '';
+          if (!t.includes(searchQuery) && !d.includes(searchQuery) && !b.includes(searchQuery) && !c.includes(searchQuery) && !tags.includes(searchQuery)) {
+            return false;
+          }
+        }
+        return true;
+      }).sort((a, b) => {
+        if (sortBy === 'price-asc') return (a.price || 0) - (b.price || 0);
+        if (sortBy === 'price-desc') return (b.price || 0) - (a.price || 0);
+        if (sortBy === 'rating-desc') return getProductRating(b) - getProductRating(a);
+        if (sortBy === 'title-asc') return (a.title || '').localeCompare(b.title || '');
+        return 0;
+      });
+    }
+
+    function renderProducts() {
+      const filtered = filterAndSortProducts();
+      const grid = document.getElementById('productGrid');
+      const empty = document.getElementById('emptyState');
+      const visibleCount = document.getElementById('visibleCount');
+
+      visibleCount.innerText = filtered.length;
+      grid.innerHTML = '';
+
+      if (filtered.length === 0) {
+        empty.classList.remove('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+
+      filtered.forEach(p => {
+        const card = createProductCard(p);
+        grid.appendChild(card);
+      });
+    }
+
+    function createProductCard(p) {
+      const card = document.createElement('div');
+      card.className = 'bg-white rounded-2xl border border-slate-200/80 hover:border-indigo-300 hover:shadow-lg transition-all duration-200 flex flex-col overflow-hidden group cursor-pointer';
+      card.onclick = () => openModal(p);
+
+      const src = p.source || (p.sku ? 'dummyjson' : 'fakestore');
+      const isDummy = src === 'dummyjson';
+      const sourceBadgeColor = isDummy ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-blue-50 text-blue-700 border-blue-200';
+      const sourceLabel = isDummy ? 'DummyJSON' : 'FakeStore';
+
+      const thumb = p.thumbnail || p.image || (p.images && p.images[0]) || '';
+      const rating = getProductRating(p);
+      const ratingCount = getRatingCount(p);
+
+      const discount = p.discountPercentage;
+      const origPrice = discount ? (p.price / (1 - discount / 100)).toFixed(2) : null;
+
+      let stockBadge = '';
+      if (p.stock !== undefined && p.stock !== null) {
+        if (p.stock > 10) {
+          stockBadge = '<span class="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">In Stock</span>';
+        } else if (p.stock > 0) {
+          stockBadge = `<span class="text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md">Only ${p.stock} left</span>`;
+        } else {
+          stockBadge = '<span class="text-[10px] font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md">Out of Stock</span>';
+        }
+      } else {
+        stockBadge = '<span class="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">In Stock</span>';
+      }
+
+      card.innerHTML = `
+        <div class="relative bg-slate-50/80 p-4 aspect-[4/3] flex items-center justify-center overflow-hidden">
+          <span class="absolute top-3 left-3 text-[10px] font-bold px-2 py-0.5 rounded-md border ${sourceBadgeColor}">
+            ${sourceLabel}
+          </span>
+          ${discount ? `<span class="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-500 text-white">-${Math.round(discount)}%</span>` : ''}
+          <img 
+            src="${thumb}" 
+            alt="${p.title}" 
+            loading="lazy" 
+            onerror="this.src='https://via.placeholder.com/300?text=Product+Image'"
+            class="h-full max-h-40 w-auto object-contain transition duration-300 group-hover:scale-105"
+          />
+        </div>
+        
+        <div class="p-4 flex-1 flex flex-col justify-between space-y-3">
+          <div class="space-y-1">
+            <div class="flex items-center justify-between text-[11px] text-slate-400">
+              <span class="capitalize font-medium text-slate-500">${p.category || 'General'}</span>
+              <div class="flex items-center gap-1 text-amber-500 font-semibold">
+                <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                </svg>
+                <span>${rating.toFixed(1)}</span>
+                ${ratingCount !== null ? `<span class="text-slate-400 text-[10px]">(${ratingCount})</span>` : ''}
+              </div>
+            </div>
+            
+            <h3 class="text-xs font-bold text-slate-900 line-clamp-2 group-hover:text-indigo-600 transition">
+              ${p.title}
+            </h3>
+            
+            ${p.brand ? `<p class="text-[11px] text-slate-400 font-medium">by ${p.brand}</p>` : ''}
+          </div>
+
+          <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+            <div class="flex items-baseline gap-1.5">
+              <span class="text-sm font-bold text-slate-900">$${(p.price || 0).toFixed(2)}</span>
+              ${origPrice ? `<span class="text-[10px] text-slate-400 line-through">$${origPrice}</span>` : ''}
+            </div>
+            ${stockBadge}
+          </div>
+        </div>
+      `;
+      return card;
+    }
+
+    function openModal(p) {
+      const modal = document.getElementById('productModal');
+      const src = p.source || (p.sku ? 'dummyjson' : 'fakestore');
+      const isDummy = src === 'dummyjson';
+
+      // Badges
+      const srcBadge = document.getElementById('modalSourceBadge');
+      srcBadge.innerText = isDummy ? 'DummyJSON' : 'Fake Store API';
+      srcBadge.className = `text-[11px] font-bold px-2 py-0.5 rounded-md border ${isDummy ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`;
+
+      document.getElementById('modalCategoryBadge').innerText = (p.category || 'General').toUpperCase();
+      
+      // Image
+      const thumb = p.thumbnail || p.image || (p.images && p.images[0]) || '';
+      document.getElementById('modalImage').src = thumb;
+
+      // Titles
+      document.getElementById('modalBrand').innerText = p.brand ? `Brand: ${p.brand}` : '';
+      document.getElementById('modalTitle').innerText = p.title || 'Product Details';
+
+      // Rating
+      const rating = getProductRating(p);
+      const ratingCount = getRatingCount(p);
+      document.getElementById('modalRatingStars').innerHTML = '★'.repeat(Math.round(rating)) + '☆'.repeat(5 - Math.round(rating));
+      document.getElementById('modalRatingText').innerText = `${rating.toFixed(2)} / 5.0 ${ratingCount ? `(${ratingCount} reviews)` : ''}`;
+
+      // Price & Discount
+      document.getElementById('modalPrice').innerText = `$${(p.price || 0).toFixed(2)}`;
+      const discount = p.discountPercentage;
+      const origPriceEl = document.getElementById('modalOriginalPrice');
+      const discountBadgeEl = document.getElementById('modalDiscountBadge');
+      if (discount) {
+        origPriceEl.innerText = `$${(p.price / (1 - discount / 100)).toFixed(2)}`;
+        origPriceEl.classList.remove('hidden');
+        discountBadgeEl.innerText = `${Math.round(discount)}% OFF`;
+        discountBadgeEl.classList.remove('hidden');
+      } else {
+        origPriceEl.classList.add('hidden');
+        discountBadgeEl.classList.add('hidden');
+      }
+
+      // Stock
+      const stockEl = document.getElementById('modalStockStatus');
+      if (p.stock !== undefined && p.stock !== null) {
+        stockEl.innerText = p.availabilityStatus ? `${p.availabilityStatus} (${p.stock} units)` : `${p.stock} units in stock`;
+        stockEl.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700';
+      } else {
+        stockEl.innerText = 'Available in stock';
+        stockEl.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700';
+      }
+
+      document.getElementById('modalSku').innerText = p.sku ? `SKU: ${p.sku}` : `ID: #${p.id}`;
+
+      // Tags
+      const tagsContainer = document.getElementById('modalTags');
+      tagsContainer.innerHTML = '';
+      if (Array.isArray(p.tags) && p.tags.length > 0) {
+        p.tags.forEach(t => {
+          const tag = document.createElement('span');
+          tag.className = 'text-[10px] font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full';
+          tag.innerText = `#${t}`;
+          tagsContainer.appendChild(tag);
+        });
+      }
+
+      // Description
+      document.getElementById('modalDescription').innerText = p.description || 'No description provided.';
+
+      // Specs
+      const specsGrid = document.getElementById('modalSpecsGrid');
+      specsGrid.innerHTML = '';
+      const specs = [];
+      if (p.weight) specs.push({ label: 'Weight', val: `${p.weight}g` });
+      if (p.dimensions && typeof p.dimensions === 'object') {
+        const { width, height, depth } = p.dimensions;
+        if (width && height && depth) specs.push({ label: 'Dimensions', val: `${width}×${height}×${depth} cm` });
+      }
+      if (p.shippingInformation) specs.push({ label: 'Shipping', val: p.shippingInformation });
+      if (p.warrantyInformation) specs.push({ label: 'Warranty', val: p.warrantyInformation });
+      if (p.returnPolicy) specs.push({ label: 'Return Policy', val: p.returnPolicy });
+      if (p.minimumOrderQuantity) specs.push({ label: 'Min Order', val: `${p.minimumOrderQuantity} units` });
+
+      if (specs.length > 0) {
+        document.getElementById('modalSpecsContainer').classList.remove('hidden');
+        specs.forEach(s => {
+          const div = document.createElement('div');
+          div.className = 'bg-white p-2.5 rounded-lg border border-slate-100';
+          div.innerHTML = `<span class="text-slate-400 block text-[10px] uppercase font-bold">${s.label}</span><span class="text-slate-800 font-semibold">${s.val}</span>`;
+          specsGrid.appendChild(div);
+        });
+      } else {
+        document.getElementById('modalSpecsContainer').classList.add('hidden');
+      }
+
+      // Reviews
+      const reviewsList = document.getElementById('modalReviewsList');
+      reviewsList.innerHTML = '';
+      if (Array.isArray(p.reviews) && p.reviews.length > 0) {
+        document.getElementById('modalReviewsContainer').classList.remove('hidden');
+        p.reviews.forEach(r => {
+          const revDiv = document.createElement('div');
+          revDiv.className = 'bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs';
+          const stars = '★'.repeat(r.rating || 5) + '☆'.repeat(5 - (r.rating || 5));
+          revDiv.innerHTML = `
+            <div class="flex items-center justify-between text-slate-500 mb-1">
+              <span class="font-bold text-slate-800">${r.reviewerName || 'Customer'}</span>
+              <span class="text-amber-500 font-bold">${stars}</span>
+            </div>
+            <p class="text-slate-600 italic">"${r.comment || ''}"</p>
+          `;
+          reviewsList.appendChild(revDiv);
+        });
+      } else {
+        document.getElementById('modalReviewsContainer').classList.add('hidden');
+      }
+
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+      document.getElementById('productModal').classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    window.openModal = openModal;
+    window.closeModal = closeModal;
+
+    // Run on startup
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
+
